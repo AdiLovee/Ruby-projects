@@ -9,7 +9,7 @@ class Game
     @round = 0
   end
   def remaining_players
-    player.count {|player| !player.eliminated?}
+    players.count {|player| !player.eliminated?}
   end
 
   def new_round
@@ -45,7 +45,9 @@ class Game
   def players_bet
     players.each do |player|
       if player.eliminated?
-        puts "#{player.name} can bet between 0 and #{max_bet(player)}: "
+        puts "#{player.name} passes. (Out of chips!)"
+      else
+        print "#{player.name} can bet between 0 and #{max_bet(player)}: "
         bet = gets.to_i
         if bet < 0 || bet > max_bet(player)
           bet = 0
@@ -54,6 +56,62 @@ class Game
         player.bet = bet
       end
     end
+  end
+  def show_player_chips
+    players.each do |player|
+      if player.eliminated?
+        puts "#{player.name} has been eliminated"
+      else
+        puts "#{player.name} has #{player.chips} chips"
+      end
+    end
+  end
+  def show_cards
+    players.each do |player|
+      puts "Player #{player.name}"
+      if player.eliminated?
+        puts "Has been eliminated!"
+      else
+        player.hand.each do |card|
+          puts card.to_s
+        end
+      end
+      puts ""
+    end
+  end
+  def determine_results
+    players.each do |player|
+      if not player.eliminated?
+        low_card = player.hand[0]
+        high_card = player.hand[1]
+        middle_card = player.hand[2]
+        if Card.compare_rank(low_card, middle_card) == 0 || Card.compare_rank(high_card, middle_card) == 0
+          puts "#{player.name} got an exact match, loses twice the bet"
+          chips = player.pay(player.bet * 2)
+        elsif Card.compare_rank(middle_card, low_card) < 0 || Card.compare_rank(middle_card, high_card) > 0
+          puts "#{player.name} wasn't in between, loses the bet"
+          chips = player.pay(player.bet)
+        else
+          puts "#{player.name} wins bet!"
+          chips = -player.bet
+          player.win(player.bet)
+        end
+        @bank = @bank + chips
+        if @bank <= 0
+          puts "Dealer is out of chips, everyone needs to ante up!"
+        end
+        while @bank <= 0
+          ante
+        end
+      end
+    end
+  end
+  def game_over
+    puts "Game over!"
+    players.sort! do |player1, player2|
+      player1.chips <=> player2.chips
+    end
+    puts "The winner is #{players.last.name}"
   end
   def play
     while deck.size > (players.length * 3) && remaining_players > 1 do
