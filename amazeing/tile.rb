@@ -22,23 +22,6 @@ class Tile
     @type   = type
     @hidden = false
   end
-  def tile_is_drawn?
-    !is_empty? && !is_start?
-  end
-  def tile_can_be_entered?
-    is_empty? || is_start || is_treasure? || is_exit?
-  end
-  def color
-    if is_player?
-      @@colors[:red]
-    elsif is_exit?
-      @@colors[:green]
-    elsif is_treasure?
-      @@colors[:gold]
-    else
-      @@color[:blue]
-    end
-  end
   def is_treasure
     @type == TREASURE_TYPE
   end
@@ -53,6 +36,23 @@ class Tile
   end
   def is_empty?
     @type == EMPTY_TYPE || @type == ' '
+  end
+  def color
+    if is_player?
+      @@colors[:red]
+    elsif is_exit?
+      @@colors[:green]
+    elsif is_treasure?
+      @@colors[:gold]
+    else
+      @@color[:blue]
+    end
+  end
+    def tile_is_drawn?
+    !is_empty? && !is_start?
+  end
+  def tile_can_be_entered?
+    is_empty? || is_start || is_treasure? || is_exit?
   end
   def hidden?
     @hidden
