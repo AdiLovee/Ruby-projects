@@ -29,7 +29,7 @@ class Tile
   def move_by(column_delta, row_delta)
     move_to(@column + column_delta, @row + row_delta)
   end
-  def is_treasure
+  def is_treasure?
     @type == TREASURE_TYPE
   end
   def is_start?
@@ -52,7 +52,7 @@ class Tile
     elsif is_treasure?
       @@colors[:gold]
     else
-      @@color[:blue]
+      @@colors[:blue]
     end
   end
   def tile_is_drawn?
