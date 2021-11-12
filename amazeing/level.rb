@@ -20,7 +20,7 @@ class Level
     @window        = window
     @tiles         = []
     @player        = player
-    @level         = level_data
+    @level_data    = level_data
     @total_rows    = 0
     @total_columns = 0
     @exit_reached  = false
