@@ -41,6 +41,7 @@ end
 =end
 class TetrisGame
   def initialize args
+    @lines_cleared = 0
     @level = 1
     @next_move = 30
     @args = args
@@ -75,6 +76,13 @@ class TetrisGame
     select_next_piece
   end
   def render_score
+    @args.outputs.labels << [160, 635, "Current Score",10,255,255,255,255]
+    @args.outputs.labels << [260, 585, "#{@score}",10,255,255,255,255]
+    @args.outputs.labels << [160, 535, "Lines Cleared",10,255,255,255,255]
+    @args.outputs.labels << [260, 485, "#{@lines_cleared}",10,255,255,255,255]
+    @args.outputs.labels << [160, 335, "Current Level",10,255,255,255,255]
+    @args.outputs.labels << [260, 285, "#{@level}",10,255,255,255,255]
+
   end
   def render_cube x,y,color,border=8
     boxsize = 30
@@ -162,6 +170,7 @@ class TetrisGame
     when 7 then [ [X,X], [0,X], [0,X] ] #j
     end
   end
+
   def plant_current_piece
     #plant piece into grid
     for x in 0..@current_piece.length-1 do
@@ -174,7 +183,39 @@ class TetrisGame
     @current_piece_y = 0
     @current_piece_x = 5
     select_next_piece
-    @score += 10
+    for y in 0..@grid_h-1
+      full = true
+      for x in 0..@grid_w-1
+        if @grid[x][y] == 0
+          full = false
+          break
+        end
+      end
+      if full
+        #adds 1 to line_clearing
+        @line_clearing += 1
+        @lines_cleared += 1
+        for i in y.downto(1) do
+          for j in 0..@grid_w-1
+            @grid[j][i] = @grid[j][i-1]
+          end
+        end
+        for i in 0..@grid_w-1
+          @grid[i][0] = 0
+        end
+      end
+    end
+    case @line_clearing
+    when 1 then @score += (40 * @level+1)
+    when 2 then @score += (100 * @level+1)
+    when 3 then @score += (300 * @level+1)
+    when 4 then @score += (1200 * @level+1)
+    end
+    if (@lines_cleared != 0) && (@lines_cleared % 10 == 0)
+      @level += 1
+    end
+    @line_clearing = 0
+    @score += 1
 #    @current_piece = randomize_piece
   end
   def rotate_current_piece
@@ -205,7 +246,7 @@ class TetrisGame
     if kd.r || kh.r
       $gtk.reset
     end
-    @next_move -= 1 * @level
+    @next_move -= (1 * @level+1)/2
     if @next_move <= 0
       if current_piece_colliding
         plant_current_piece
