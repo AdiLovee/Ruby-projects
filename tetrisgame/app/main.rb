@@ -1,44 +1,4 @@
 $gtk.reset
-=begin
-
-case @piece_type
-when @piece_type = @z
-  r,g,b = 255,0,0
-when @piece_type = @s
-  r,g,b = 0,255,0
-when @piece_type = @i
-  r,g,b = 0,255,255
-when @piece_type = @o
-  r,g,b = 255,255,0
-when @piece_type = @j
-  r,g,b = 0,0,255
-when @piece_type = @t
-  r,g,b = 255,0,255
-when @piece_type = @l
-  r,g,b = 255,127,0
-else
-
-def render_hold_piece
-  offset = 2
-  @held_piece = @next_piece
-  @args.outputs.labels << [1070, 650, "Held Piece",    4,0,255,255,255]
-  if @held_piece == [ [X,X,X,X] ]
-    render_piece @held_piece, 21,offset+2
-  else
-    render_piece @held_piece, 20,offset+3
-  end
-  render_grid_border 18, offset, 7,8
-end
-
-if @next_piece == [ [X,X,X,X] ]
-  render_piece @next_piece, 15,offset+2
-else
-  render_piece @next_piece, 14,offset+3
-end
-
-
-
-=end
 class TetrisGame
   def initialize args
     @lines_cleared = 0
@@ -46,13 +6,22 @@ class TetrisGame
     @next_move = 30
     @args = args
     @score = 0
+    @hiscore1 = 50000
+    @hiscore2 = 25000
+    @hiscore3 = 10000
+    @hiscore4 = 5000
+    @hiscore5 = 1000
     @next_piece = nil
     @gameover = false
+    @debug = false
+    @piece_swapped = false
     @grid_w = 10
     @grid_h = 20
     @current_piece_y = 0
     @current_piece_x = 5
     @current_piece = [ [1,1], [1,1] ]
+    @held_piece_full = false
+    @held_piece = []
     @grid = []
     for x in 0..@grid_w-1 do
       @grid[x] = []
@@ -62,27 +31,55 @@ class TetrisGame
     end
     @color_index = [
       [ 255, 255, 255], #white
-      [ 255, 127, 0 ], #orange
-      [ 255, 0, 0 ], #red
-      [ 255, 0, 255 ], #pink
-      [ 0, 255, 0 ], #green
-      [ 255, 255, 0 ], #yellow
-      [ 0, 255, 255 ], #cyan
-      [ 0, 0, 255 ], #blue
-      [ 0, 0, 0 ], #black
+      [ 255, 127, 0 ],  #orange
+      [ 255, 0, 0 ],    #red
+      [ 255, 0, 255 ],  #pink
+      [ 0, 255, 0 ],    #green
+      [ 255, 255, 0 ],  #yellow
+      [ 0, 255, 255 ],  #cyan
+      [ 0, 0, 255 ],    #blue
+      [ 0, 0, 0 ],      #black
       [ 127, 127, 127 ] #grey
     ]
     select_next_piece
     select_next_piece
   end
+  def render_debug
+    @args.outputs.labels << [1080, 680, "Debug Stats",2,255,255,255,255]
+    @args.outputs.labels << [1080, 660, "gameover:",1,255,255,255,255]
+    @args.outputs.labels << [1080, 640, " #{@gameover}",1,255,255,255,255]
+    @args.outputs.labels << [1080, 620, "next_move:",1,255,255,255,255]
+    @args.outputs.labels << [1080, 600, " #{@next_move}",1,255,255,255,255]
+    @args.outputs.labels << [1080, 580, "held_piece_full:",1,255,255,255,255]
+    @args.outputs.labels << [1080, 560, " #{@held_piece_full}",1,255,255,255,255]
+    @args.outputs.labels << [1080, 540, "current_piece_x:",1,255,255,255,255]
+    @args.outputs.labels << [1080, 520, " #{@current_piece_x}",1,255,255,255,255]
+    @args.outputs.labels << [1080, 500, "current_piece_y:",1,255,255,255,255]
+    @args.outputs.labels << [1080, 480, " #{@current_piece_y}",1,255,255,255,255]
+    @args.outputs.labels << [1080, 460, "line_clearing",1,255,255,255,255]
+    @args.outputs.labels << [1080, 440, " #{@line_clearing}",1,255,255,255,255]
+    @args.outputs.labels << [1080, 420, "lines_cleared modulo",1,255,255,255,255]
+    @args.outputs.labels << [1080, 400, " #{@lines_cleared % 10}",1,255,255,255,255]
+  end
   def render_score
-    @args.outputs.labels << [160, 635, "Current Score",10,255,255,255,255]
-    @args.outputs.labels << [260, 585, "#{@score}",10,255,255,255,255]
-    @args.outputs.labels << [160, 535, "Lines Cleared",10,255,255,255,255]
-    @args.outputs.labels << [260, 485, "#{@lines_cleared}",10,255,255,255,255]
-    @args.outputs.labels << [160, 335, "Current Level",10,255,255,255,255]
-    @args.outputs.labels << [260, 285, "#{@level}",10,255,255,255,255]
-
+    @args.outputs.labels << [165, 625, "Current Score",6,255,0,0,0]
+    @args.outputs.labels << [260, 585, "#{@score}",6,255,0,0,0]
+    @args.outputs.labels << [165, 545, "Lines Cleared",6,255,0,0,0]
+    @args.outputs.labels << [260, 505, "#{@lines_cleared}",6,255,0,0,0]
+    @args.outputs.labels << [165, 465, "Current Level",6,255,0,0,0]
+    @args.outputs.labels << [260, 425, "#{@level}",6,255,0,0,0]
+    @args.outputs.labels << [165, 385, "Hi-Scores",6,255,0,0,0]
+    @args.outputs.labels << [260, 355, "#{@hiscore1}",6,255,0,0,0]
+    @args.outputs.labels << [260, 325, "#{@hiscore2}",6,255,0,0,0]
+    @args.outputs.labels << [260, 295, "#{@hiscore3}",6,255,0,0,0]
+    @args.outputs.labels << [260, 265, "#{@hiscore4}",6,255,0,0,0]
+    @args.outputs.labels << [260, 235, "#{@hiscore5}",6,255,0,0,0]
+    render_grid_border -13,0, 11,20
+  end
+  def render_gameover
+    @args.outputs.solids << [  0,   0, 1280, 720, 0, 0, 0, 128]
+    @args.outputs.labels << [200, 450, "GAME OVER", 100, 255,255,255,255]
+    @args.outputs.labels << [500, 250, "Press 'R' to restart", 10, 255,255,255,255]
   end
   def render_cube x,y,color,border=8
     boxsize = 30
@@ -111,7 +108,10 @@ class TetrisGame
     end
   end
   def render_background
+    @args.outputs.sprites << [ 130, 90, 270, 540, 'background.png' ] unless @gameover
     @args.outputs.solids << [ 0, 0, 1280, 720]
+  end
+  def render_border
     render_grid_border -1, -1, @grid_w + 2, @grid_h + 2
   end
   def render_piece piece, piece_x, piece_y
@@ -129,16 +129,18 @@ class TetrisGame
     render_grid_border 12, 2,7, 8
     center_x = (5 - @next_piece.length) / 2
     center_y = (8 - @next_piece[0].length) / 2
-#    render_piece @next_piece, 14,offset+3
     render_piece @next_piece, 13+center_x,2+center_y
     @args.outputs.labels << [860, 665, "Next Piece",10,255,255,255,255]
   end
-  def render
-    render_background
-    render_grid
-    render_next_piece
-    render_current_piece
-    render_score
+  def render_held_piece
+    # !!! FIXME: dont hardcore these numbers
+    @args.outputs.labels << [860, 350, "Held Piece",10,255,255,255,255]
+    render_grid_border 12, 12,7, 8
+    if @held_piece_full == true
+      center_x = (5 - @held_piece.length) / 2
+      center_y = (8 - @held_piece[0].length) / 2
+      render_piece @held_piece, 13+center_x,12+center_y
+    end
   end
   def current_piece_colliding
     for x in 0..@current_piece.length-1 do
@@ -154,9 +156,6 @@ class TetrisGame
     end
     return false
   end
-#  def randomize_piece
-#    [@o, @s, @j, @l, @t, @i, @z].sample
-#  end
   def select_next_piece
     @current_piece = @next_piece
     X = rand(7) + 1
@@ -170,19 +169,7 @@ class TetrisGame
     when 7 then [ [X,X], [0,X], [0,X] ] #j
     end
   end
-
-  def plant_current_piece
-    #plant piece into grid
-    for x in 0..@current_piece.length-1 do
-      for y in 0..@current_piece[x].length-1 do
-        if @current_piece[x][y] != 0
-          @grid[@current_piece_x + x][@current_piece_y + y] = @current_piece[x][y]
-        end
-      end
-    end
-    @current_piece_y = 0
-    @current_piece_x = 5
-    select_next_piece
+  def test_line_clear
     for y in 0..@grid_h-1
       full = true
       for x in 0..@grid_w-1
@@ -192,7 +179,6 @@ class TetrisGame
         end
       end
       if full
-        #adds 1 to line_clearing
         @line_clearing += 1
         @lines_cleared += 1
         for i in y.downto(1) do
@@ -205,18 +191,33 @@ class TetrisGame
         end
       end
     end
-    case @line_clearing
-    when 1 then @score += (40 * @level+1)
-    when 2 then @score += (100 * @level+1)
-    when 3 then @score += (300 * @level+1)
-    when 4 then @score += (1200 * @level+1)
+  end
+  def plant_current_piece
+    for x in 0..@current_piece.length-1 do
+      for y in 0..@current_piece[x].length-1 do
+        if @current_piece[x][y] != 0
+          @grid[@current_piece_x + x][@current_piece_y + y] = @current_piece[x][y]
+        end
+      end
     end
+    @current_piece_y = 0
+    @current_piece_x = 5
+    select_next_piece
+    test_line_clear
+    case @line_clearing
+      when 1 then @score += (40 * @level+1)
+      when 2 then @score += (100 * @level+1)
+      when 3 then @score += (300 * @level+1)
+      when 4 then @score += (1200 * @level+1)
+      end
     if (@lines_cleared != 0) && (@lines_cleared % 10 == 0)
       @level += 1
     end
     @line_clearing = 0
     @score += 1
-#    @current_piece = randomize_piece
+    if current_piece_colliding
+      @gameover = true
+    end
   end
   def rotate_current_piece
     @current_piece = @current_piece.transpose.map(&:reverse)
@@ -224,9 +225,31 @@ class TetrisGame
       @current_piece_x = @grid_w - @current_piece.length
     end
   end
+  def render
+      render_background
+    unless @gameover
+      render_grid
+      render_border
+      render_next_piece
+      render_current_piece
+      render_held_piece
+      render_score
+      if @debug == true
+        render_debug
+      end
+    else
+      render_gameover
+    end
+  end
   def iterate
     kd = @args.inputs.keyboard.key_down
     kh = @args.inputs.keyboard.key_held
+    if @gameover
+      if kd.r || kh.r
+        $gtk.reset seed: Time.new.to_i
+      end
+      return
+    end
     if kd.left || kd.a
       if @current_piece_x > 0
         @current_piece_x -= 1
@@ -243,15 +266,26 @@ class TetrisGame
     if kd.up || kd.w
       rotate_current_piece
     end
+    if kd.c
+      @debug = !@debug
+    end
+    if kd.q
+      unless @held_piece_full
+        @held_piece = @current_piece
+        select_next_piece
+        @held_piece_full = true
+      else
+        @current_piece, @held_piece = @held_piece, @current_piece
+      end
+      @current_piece_y = 0
+    end
     if kd.r || kh.r
-      $gtk.reset
+      $gtk.reset seed: Time.new.to_i
     end
     @next_move -= (1 * @level+1)/2
     if @next_move <= 0
       if current_piece_colliding
         plant_current_piece
-#        @current_piece = randomize_piece
-#        @piece_type = randomize_piece
       else
         @current_piece_y += 1
       end
@@ -264,7 +298,10 @@ class TetrisGame
   end
 end
 
+
+
 def tick args
+  return unless $console.hidden?
   args.state.game ||= TetrisGame.new args
   args.state.game.tick
 end
