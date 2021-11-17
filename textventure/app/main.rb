@@ -1,3 +1,9 @@
+=begin
+===========CODE CLIPBOARD=============
+
+=end
+
+
 $gtk.reset
 class TextGame
   def initialize args
@@ -71,43 +77,24 @@ class TextGame
     kd = @args.inputs.keyboard.key_down
     kh = @args.inputs.keyboard.key_held
     if !@game_started
-      if kd.space
-        @game_started = true
-      end
+      @game_started = true if kd.space
     end
     case @stage
     when "start"
-      if kd.e
-        @stage = "room2"
-      end
-      if kd.s
-        unless @sword_found
-          @sword_found = true
-        end
-      end
+      @stage = "room2" if kd.e
+      @sword_found = true unless @sword_found if kd.s
     when "room2"
       if kd.a
-        if @sword_found
-          @stage = "success"
-        else
-          @stage = "fail"
-        end
+        @stage = "success" if @sword_found
+        @stage = "fail" if !@sword_found
       end
-      if kd.f
-        @stage = "fail 2"
-      end
+        @stage = "fail 2" if kd.f
     when "success"
-      if kd.space || kh.space
-        $gtk.reset
-      end
+      $gtk.reset if kd.space || kh.space
     when "fail"
-      if kd.space || kh.space
-        $gtk.reset
-      end
+      $gtk.reset if kd.space || kh.space
     when "fail 2"
-      if kd.space || kh.space
-        $gtk.reset
-      end
+      $gtk.reset if kd.space || kh.space
     end
   end
 
