@@ -28,11 +28,9 @@ class TetrisGame
     @held_piece_full = false
     @held_piece = []
     @grid = []
-    for x in 0..@grid_w-1 do
+    (0...@grid_w).each do |x|
       @grid[x] = []
-      for y in 0..@grid_h-1 do
-        @grid[x][y] = 0
-      end
+      (0...@grid_h).each { |y| @grid[x][y] = 0 }
     end
     @color_index = [
       [ 255, 255, 255], #white
@@ -118,20 +116,18 @@ class TetrisGame
     @args.outputs.borders << [ grid_x + (x * boxsize), (720 - grid_y) - (y * boxsize), boxsize, boxsize, *@color_index[border] ]
   end
   def render_grid
-    for x in 0..@grid_w-1 do
-      for y in 0..@grid_h-1 do
-        render_cube x,y, @grid[x][y] if @grid[x][y] != 0
-      end
+    (0...@grid_w).each do |x|
+      (0...@grid_h).each { |y| render_cube x,y, @grid[x][y] if @grid[x][y] != 0}
     end
   end
   def render_grid_border x,y,w,h
     color = 9
     border = 0
-    for i in x..(x+w)-1 do
+    (x...(x+w)).each do |i|
       render_cube i, y, color, border
       render_cube i, (y+h)-1, color, border
     end
-    for i in y..(y+h)-1 do
+    (y...(y+h)).each do |i|
       render_cube x, i, color, border
       render_cube (x+w)-1, i, color, border
     end
@@ -144,10 +140,8 @@ class TetrisGame
     render_grid_border -1, -1, @grid_w + 2, @grid_h + 2
   end
   def render_piece piece, piece_x, piece_y
-    for x in 0..piece.length-1 do
-      for y in 0..piece[x].length-1 do
-        render_cube piece_x + x, piece_y + y, *piece[x][y] if piece[x][y] != 0
-      end
+    (0...piece.length).each do |x|
+      (0...piece[x].length).each { |y| render_cube piece_x + x, piece_y + y, *piece[x][y] if piece[x][y] != 0 }
     end
   end
   def render_current_piece
@@ -199,8 +193,8 @@ class TetrisGame
   end
 
   def current_piece_colliding
-    for x in 0..@current_piece.length-1 do
-      for y in 0..@current_piece[x].length-1 do
+    (0...@current_piece.length).each do |x|
+      (0...@current_piece[x].length).each do |y|
         if (@current_piece[x][y] != 0)
           if (@current_piece_y + y >= @grid_h-1)
             return true
@@ -228,19 +222,15 @@ class TetrisGame
   def clear_line y
     @line_clearing += 1
     @lines_cleared += 1
-    for i in y.downto(1) do
-      for j in 0..@grid_w-1
-        @grid[j][i] = @grid[j][i-1]
-      end
+    (y.downto(1)).each do |i|
+      @grid_w.times {|j| @grid[j][i] = @grid[j][i-1]}
     end
-    for i in 0..@grid_w-1
-      @grid[i][0] = 0
-    end
+    (0...@grid_w).each { |i| @grid[i][0] = 0 }
   end
   def test_line_clear
-    for y in 0..@grid_h-1
+    @grid_h.times do |y|
       full = true
-      for x in 0..@grid_w-1
+      @grid_w.times do |x|
         if @grid[x][y] == 0
           full = false
           break
@@ -252,8 +242,8 @@ class TetrisGame
     end
   end
   def plant_current_piece
-    for x in 0..@current_piece.length-1 do
-      for y in 0..@current_piece[x].length-1 do
+    (0...@current_piece.length).each do |x|
+      (0...@current_piece[x].length).each do |y|
         if @current_piece[x][y] != 0
           @grid[@current_piece_x + x][@current_piece_y + y] = @current_piece[x][y]
         end
@@ -372,3 +362,4 @@ def tick args
   args.state.game ||= TetrisGame.new args
   args.state.game.tick
 end
+  
