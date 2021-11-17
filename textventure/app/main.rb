@@ -11,7 +11,7 @@ class TextGame
     @gameover = false
     @game_started = false
     @stage = "start"
-    @sword_found
+    @inventory = [ "-", "-", "-", "-", "-"]
   end
 
   def label_black text="New_Label", x=640, y=360, size=0, align=0
@@ -23,66 +23,76 @@ class TextGame
   def label text="New_Label", x=640, y=360, size=0, align=0, r=0, g=0, b=0, a=2555
     @args.outputs.labels << [x, y, text, size, align, r,g,b,a]
   end
+  def label_title text
+    label_white text, 640, 500, 30, 1
+  end
+  def label_sub text
+    label_white text, 640, 400, 10, 1
+  end
+  def label_1 text
+    label_white text, 640, 300, 10, 1
+  end
+  def label_2 text
+    label_white text, 640, 250, 10, 1
+  end
+  def label_3 text
+    label_white text, 640, 200, 10, 1
+  end
+  def label_4 text
+    label_white text, 640, 150, 10, 1
+  end
   def quad x=0, y=0, w=1280, h=720, r=0, g=0, b=0, a=255
     @args.outputs.solids << [x,y,w,h,r,g,b,a]
   end
-
-  def render_start_credits
-    quad   0,  0, 1280, 720
-    quad 150,300, 1090, 220, 0, 128
-    quad 450,230,  500,  90, 0, 180
-    label_white "RUBY'S VENTURE", 640, 500, 50, 1
-    label_white "Press 'Space' to start", 500, 295, 10
-    label_white "A text based choice game by Raven Love", 625, 390, 5
+  def render_inventory x, y
+    label_white "Inventory", x, y, 3
+    label_white "S: #{@inventory[0]}", x, y-30, 1
+    label_white "A: #{@inventory[1]}", x, y-60, 1
+    label_white "3: #{@inventory[2]}", x, y-90, 1
+    label_white "4: #{@inventory[3]}", x, y-120, 1
+    label_white "5: #{@inventory[4]}", x, y-150, 1
   end
-  def render_game
+  def render
     quad   0,  0, 1280, 720
+    render_inventory 80, 290 unless (@stage == "start" || @draw_inventory == false)
     case @stage
     when "start"
-      label_white "ROOM", 640, 500, 50, 1
-      label_white "- (E)XIT", 640, 250, 10, 1
-      if !@sword_found
-        label_white "- (S)EARCH", 640, 350, 10, 1
-      elsif @sword_found
-        label_white "SWORD!", 640, 350, 10, 1
-      end
+      quad 150,300, 1090, 220, 0, 128
+      quad 450,230,  500,  90, 0, 180
+      label_white "RUBY'S VENTURE", 640, 500, 50, 1
+      label_white "Press 'Space' to start", 500, 295, 10
+      label_white "A text based choice game by Raven Love", 625, 390, 5
+    when "room"
+      label_title "ROOM"
+      label_2 "- (E)XIT"
+      label_1 "- (S)EARCH" if !@sword_found
+      label_1 "GEAR!" if @sword_found
     when "room2"
-      label_white "DRAGON", 640, 500, 50, 1
-      label_white "- (A)TTACK", 640, 250, 10, 1
-      label_white "- (F)LEE", 640, 350, 10, 1
+      label_title "DRAGON"
+      label_1 "- (A)TTACK"
+      label_2 "- (F)LEE"
     when "success"
-      quad   0,  0, 1280, 720
-      label_white "WON!", 640, 500, 50, 1
-      label_white "Press 'Space' to restart", 640, 250, 10, 1
+      label_title "WON!"
+      label_1 "Press 'Space' to restart"
     when "fail"
-      quad   0,  0, 1280, 720
-      label_white "TAIL!", 640, 500, 50, 1
-      label_white "Press 'Space' to restart", 640, 250, 10, 1
+      label_title "TAIL!"
+      label_1 "Press 'Space' to restart"
     when "fail 2"
-      quad   0,  0, 1280, 720
-      label_white "FIRE!", 640, 500, 50, 1
-      label_white "Press 'Space' to restart", 640, 250, 10, 1
-    end
-  end
-
-  def render
-    if !@game_started
-      render_start_credits
-    else
-      render_game
+      label_title "FIRE!"
+      label_1 "Press 'Space' to restart"
     end
   end
 
   def iterate
     kd = @args.inputs.keyboard.key_down
     kh = @args.inputs.keyboard.key_held
-    if !@game_started
-      @game_started = true if kd.space
-    end
     case @stage
     when "start"
+      @stage = "room" if kd.space
+    when "room"
       @stage = "room2" if kd.e
       @sword_found = true unless @sword_found if kd.s
+      @inventory[0] = "Sword" if kd.s
     when "room2"
       if kd.a
         @stage = "success" if @sword_found
@@ -90,10 +100,13 @@ class TextGame
       end
         @stage = "fail 2" if kd.f
     when "success"
+      @draw_inventory = false
       $gtk.reset if kd.space || kh.space
     when "fail"
+      @draw_inventory = false
       $gtk.reset if kd.space || kh.space
     when "fail 2"
+      @draw_inventory = false
       $gtk.reset if kd.space || kh.space
     end
   end
