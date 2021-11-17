@@ -1,5 +1,4 @@
 =begin
-
 ===========CODE CLIPBOARD=============
 
 
@@ -10,16 +9,13 @@
 $gtk.reset
 class TetrisGame
   def initialize args
+    @game_started = false
     @lines_cleared = 0
     @level = 1
+    @save_file = "mygame/app/scores.txt"
     @next_move = 30
     @args = args
     @score = 0
-    @hiscore1 = 50000
-    @hiscore2 = 25000
-    @hiscore3 = 10000
-    @hiscore4 = 5000
-    @hiscore5 = 1000
     @next_piece = nil
     @gameover = false
     @debug = false
@@ -27,7 +23,7 @@ class TetrisGame
     @grid_w = 10
     @grid_h = 20
     @current_piece_y = 0
-    @current_piece_x = 5
+    @current_piece_x = 4
     @current_piece = [ [1,1], [1,1] ]
     @held_piece_full = false
     @held_piece = []
@@ -50,8 +46,19 @@ class TetrisGame
       [ 0, 0, 0 ],      #black
       [ 127, 127, 127 ] #grey
     ]
+    load_score @save_file
     select_next_piece
     select_next_piece
+  end
+  def render_start_credits
+    kd = @args.inputs.keyboard.key_down
+    kh = @args.inputs.keyboard.key_held
+    @args.outputs.solids << [  0,   0, 1280, 720, 0, 0, 0, 255]
+    @args.outputs.solids << [150, 240, 1090, 220, 128, 0, 0, 255]
+    @args.outputs.solids << [450, 180, 500, 90, 180, 0, 0, 255]
+    @args.outputs.labels << [200, 450, "WELCOME TO RUBYTRIS", 50, 255,255,255,255]
+    @args.outputs.labels << [500, 250, "Press 'Space' to start", 10, 255,255,255,255]
+    @args.outputs.labels << [625, 340, "A tetris clone written in Ruby by Raven Love", 5, 255,255,255,255]
   end
   def render_debug
     @args.outputs.labels << [1080, 680, "Debug Stats",2,255,255,255,255]
@@ -99,9 +106,9 @@ class TetrisGame
     render_grid_border -13,0, 11,20
   end
   def render_gameover
-    @args.outputs.solids << [  0,   0, 1280, 720, 0, 0, 0, 128]
+    @args.outputs.solids << [  0,   0, 1280, 720, 0, 0, 0, 255]
     @args.outputs.labels << [200, 450, "GAME OVER", 100, 255,255,255,255]
-    @args.outputs.labels << [500, 250, "Press 'R' to restart", 10, 255,255,255,255]
+    @args.outputs.labels << [500, 250, "Press 'Space' to restart", 10, 255,255,255,255]
   end
   def render_cube x,y,color,border=8
     boxsize = 30
@@ -164,6 +171,33 @@ class TetrisGame
       render_piece @held_piece, 13+center_x,12+center_y
     end
   end
+
+  def get_score file
+    #runs while ??????
+    #read score.txt and calculate ordering of high scores
+  end
+  def save_score file
+    #runs on game over
+    #add score to score.txt
+  end
+  def load_score file
+    #runs on game launch
+    #read score.txt and modify high score variables
+    if File.exists?(file)
+      @hiscore1 = 0
+      @hiscore2 = 0
+      @hiscore3 = 0
+      @hiscore4 = 0
+      @hiscore5 = 0
+    else
+      @hiscore1 = 5000
+      @hiscore2 = 2500
+      @hiscore3 = 1000
+      @hiscore4 = 500
+      @hiscore5 = 100
+    end
+  end
+
   def current_piece_colliding
     for x in 0..@current_piece.length-1 do
       for y in 0..@current_piece[x].length-1 do
@@ -191,6 +225,18 @@ class TetrisGame
     when 7 then [ [X,X], [0,X], [0,X] ] #j
     end
   end
+  def clear_line y
+    @line_clearing += 1
+    @lines_cleared += 1
+    for i in y.downto(1) do
+      for j in 0..@grid_w-1
+        @grid[j][i] = @grid[j][i-1]
+      end
+    end
+    for i in 0..@grid_w-1
+      @grid[i][0] = 0
+    end
+  end
   def test_line_clear
     for y in 0..@grid_h-1
       full = true
@@ -201,16 +247,7 @@ class TetrisGame
         end
       end
       if full
-        @line_clearing += 1
-        @lines_cleared += 1
-        for i in y.downto(1) do
-          for j in 0..@grid_w-1
-            @grid[j][i] = @grid[j][i-1]
-          end
-        end
-        for i in 0..@grid_w-1
-          @grid[i][0] = 0
-        end
+        clear_line y
       end
     end
   end
@@ -223,7 +260,7 @@ class TetrisGame
       end
     end
     @current_piece_y = 0
-    @current_piece_x = 5
+    @current_piece_x = 4
     select_next_piece
     test_line_clear
     case @line_clearing
@@ -247,9 +284,12 @@ class TetrisGame
       @current_piece_x = @grid_w - @current_piece.length
     end
   end
+
   def render
+    if !@game_started
+      render_start_credits
+    elsif !@gameover
       render_background
-    unless @gameover
       render_grid
       render_border
       render_next_piece
@@ -268,10 +308,16 @@ class TetrisGame
     kd = @args.inputs.keyboard.key_down
     kh = @args.inputs.keyboard.key_held
     if @gameover
-      if kd.r || kh.r
+      save_score @save_file
+      if kd.space || kh.space
         $gtk.reset seed: Time.new.to_i
       end
       return
+    end
+    if !@game_started
+      if kd.space
+        @game_started = true
+      end
     end
     if kd.left || kd.a
       if @current_piece_x > 0
@@ -320,8 +366,6 @@ class TetrisGame
     render
   end
 end
-
-
 
 def tick args
   return unless $console.hidden?
